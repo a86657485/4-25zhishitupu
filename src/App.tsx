@@ -4,13 +4,15 @@ import { levels, Level, GraphEdge, GraphNode } from './data/levels';
 import { GameCanvas } from './components/GameCanvas';
 import { BookOpen, Map, Sparkles, Play, ChevronRight, Unlock, ArrowRight, ArrowLeft, Settings } from 'lucide-react';
 
+import { BonusGame } from './components/BonusGame';
+
 export interface GraphSaveData {
   edges: GraphEdge[];
   nodes: GraphNode[];
   nodePositions: Record<string, { x: number; y: number }>;
 }
 
-type AppState = 'intro' | 'map' | 'story' | 'game' | 'success';
+type AppState = 'intro' | 'map' | 'story' | 'game' | 'success' | 'bonus';
 
 function ScriptReader({ script, onComplete }: { script: { role: string; content: string }[], onComplete: () => void }) {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -443,6 +445,10 @@ export default function App() {
            </motion.div>
         )}
 
+        {appState === 'bonus' && (
+          <BonusGame onClose={() => setAppState('map')} />
+        )}
+
         {appState === 'success' && (
           <motion.div 
             key="success"
@@ -460,6 +466,14 @@ export default function App() {
               </p>
               
               <div className="space-y-3">
+                {currentLevelId === 6 && (
+                  <button 
+                    onClick={() => setAppState('bonus')}
+                    className="w-full py-4 bg-gradient-to-r from-amber-600 via-amber-400 to-amber-600 bg-[length:200%_auto] animate-shimmer text-black text-xs tracking-widest uppercase font-bold rounded-full hover:scale-[1.02] transition-all shadow-[0_0_30px_rgba(245,158,11,0.5)] flex items-center justify-center gap-2 group"
+                  >
+                    <Sparkles size={16} className="group-hover:rotate-12 transition-transform" /> 开启隐藏挑战 <Sparkles size={16} />
+                  </button>
+                )}
                 {currentLevelId < levels.length && (
                   <button 
                     onClick={() => {
@@ -539,6 +553,15 @@ export default function App() {
                       </button>
                     ))}
                   </div>
+                  <button 
+                    onClick={() => {
+                      setAppState('bonus');
+                      setIsTestPanelOpen(false);
+                    }}
+                    className="w-full py-2 bg-amber-600/20 border border-amber-600/50 text-amber-500 text-[10px] font-bold rounded-lg hover:bg-amber-600/30 transition-colors uppercase tracking-widest flex items-center justify-center gap-2"
+                  >
+                    <Sparkles size={12} /> 进入小游戏
+                  </button>
                   <button 
                     onClick={() => {
                       setIsAuthTest(false);
