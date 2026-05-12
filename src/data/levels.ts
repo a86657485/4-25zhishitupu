@@ -173,13 +173,13 @@ export const levels: Level[] = [
     ],
     edges: [
       { source: "jiamu", target: "baoyu", label: "祖孙" },
-      { source: "jiamu", target: "daiyu", label: "外孙收养" },
+      { source: "jiamu", target: "daiyu", label: "祖孙" },
       { source: "baoyu", target: "daiyu", label: "木石前盟" },
       { source: "baoyu", target: "baochai", label: "金玉良缘" },
       { source: "jiamu", target: "jiafu", label: "最高权威" },
       { source: "baoyu", target: "jiafu", label: "少爷" },
     ],
-    relationOptions: ["祖孙", "外祖收养", "木石前盟", "金玉良缘", "最高权威", "少爷", "兄妹"],
+    relationOptions: ["祖孙", "表兄妹", "木石前盟", "金玉良缘", "最高权威", "少爷", "兄妹"],
   },
   {
     id: 6,

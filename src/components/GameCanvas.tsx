@@ -193,23 +193,34 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ level, initialData, onCo
     const isCorrect = level.id === 1 || level.id === 6 || !!correctEdgeDef;
 
     if (isCorrect) {
-      // Correct!
-      const newEdge: GraphEdge = {
-        source: selectedNodeId,
-        target: pendingTargetId,
-        label: relToUse
-      };
-      const newEdges = [...discoveredEdges, newEdge];
-      setDiscoveredEdges(newEdges);
-      confetti({
-        particleCount: 80,
-        spread: 80,
-        origin: { y: 0.8 },
-        colors: ['#f59e0b', '#fbbf24', '#f87171', '#d97706']
-      });
+      // Check if this edge (or its reverse) with the same label already exists
+      const isDuplicate = discoveredEdges.some(e => 
+        ((e.source === selectedNodeId && e.target === pendingTargetId) || 
+         (e.source === pendingTargetId && e.target === selectedNodeId)) && 
+        e.label === relToUse
+      );
 
-      if (level.id !== 6 && level.id !== 1 && newEdges.length >= levelEdges.length) {
-        setTimeout(handleCompleteClick, 1500);
+      if (!isDuplicate) {
+        const newEdge: GraphEdge = {
+          source: selectedNodeId,
+          target: pendingTargetId,
+          label: relToUse
+        };
+        const newEdges = [...discoveredEdges, newEdge];
+        setDiscoveredEdges(newEdges);
+        confetti({
+          particleCount: 80,
+          spread: 80,
+          origin: { y: 0.8 },
+          colors: ['#f59e0b', '#fbbf24', '#f87171', '#d97706']
+        });
+
+        if (level.id !== 6 && level.id !== 1 && newEdges.length >= levelEdges.length) {
+          setTimeout(handleCompleteClick, 1500);
+        }
+      } else {
+        // If it's a duplicate, just show subtle feedback or nothing.
+        // We'll reset state below anyway.
       }
     } else {
       // Incorrect feedback
