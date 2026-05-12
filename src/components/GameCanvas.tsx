@@ -3,10 +3,12 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Book, User, Sword, MapPin, X, Check } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Level, GraphNode, GraphEdge, NodeType } from '../data/levels';
+import { GraphSaveData } from '../App';
 
 interface GameCanvasProps {
   level: Level;
-  onComplete: () => void;
+  initialData?: GraphSaveData;
+  onComplete: (data: GraphSaveData) => void;
   onBack?: () => void;
 }
 
@@ -17,7 +19,7 @@ const typeConfig: Record<NodeType, { color: string; icon: React.ReactNode; bg: s
   place: { color: 'text-purple-200', bg: 'bg-[#151515]', icon: <MapPin size={16} /> },
 };
 
-export const GameCanvas: React.FC<GameCanvasProps> = ({ level, onComplete, onBack }) => {
+export const GameCanvas: React.FC<GameCanvasProps> = ({ level, initialData, onComplete, onBack }) => {
   const [nodes, setNodes] = useState<GraphNode[]>([]);
   const [discoveredEdges, setDiscoveredEdges] = useState<GraphEdge[]>([]);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -27,36 +29,44 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ level, onComplete, onBac
   const [isCustomMode, setIsCustomMode] = useState<boolean>(false);
   const [customRelation, setCustomRelation] = useState<string>('');
   const [nodePositions, setNodePositions] = useState<Record<string, { x: number; y: number }>>({});
-  const [showInstructions, setShowInstructions] = useState<boolean>(true);
+  const [showInstructions, setShowInstructions] = useState<boolean>(!initialData);
   const [errorFeedback, setErrorFeedback] = useState<boolean>(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Initialize nodes
   useEffect(() => {
-    const levelNodes = level.nodes ?? [];
-    setNodes(levelNodes);
-    setDiscoveredEdges([]);
+    if (initialData) {
+      setNodes(initialData.nodes);
+      setDiscoveredEdges(initialData.edges);
+      setNodePositions(initialData.nodePositions);
+      setShowInstructions(false);
+    } else {
+      const levelNodes = level.nodes ?? [];
+      setNodes(levelNodes);
+      setDiscoveredEdges([]);
+      setShowInstructions(true);
+      
+      // Set initial positions based on percentages
+      const initialPos: Record<string, { x: number; y: number }> = {};
+      if (containerRef.current) {
+        const { width, height } = containerRef.current.getBoundingClientRect();
+        levelNodes.forEach(node => {
+          initialPos[node.id] = {
+            x: (node.x / 100) * width,
+            y: (node.y / 100) * height
+          };
+        });
+        setNodePositions(initialPos);
+      }
+    }
+
     setSelectedNodeId(null);
     setPendingTargetId(null);
     setEditingNodeId(null);
     setIsCustomMode(false);
     setCustomRelation('');
-    setShowInstructions(true);
     setErrorFeedback(false);
-    
-    // Set initial positions based on percentages
-    const initialPos: Record<string, { x: number; y: number }> = {};
-    if (containerRef.current) {
-      const { width, height } = containerRef.current.getBoundingClientRect();
-      levelNodes.forEach(node => {
-        initialPos[node.id] = {
-          x: (node.x / 100) * width,
-          y: (node.y / 100) * height
-        };
-      });
-      setNodePositions(initialPos);
-    }
-  }, [level]);
+  }, [level, initialData]);
 
   // Handle window resize
   useEffect(() => {
@@ -152,6 +162,14 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ level, onComplete, onBac
     }, 100);
   };
 
+  const handleCompleteClick = () => {
+    onComplete({
+      nodes,
+      edges: discoveredEdges,
+      nodePositions
+    });
+  };
+
   const handleRelationPick = (relation: string) => {
     if (!selectedNodeId || !pendingTargetId) return;
 
@@ -187,7 +205,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ level, onComplete, onBac
       });
 
       if (level.id !== 6 && newEdges.length === levelEdges.length) {
-        setTimeout(onComplete, 1500);
+        setTimeout(handleCompleteClick, 1500);
       }
     } else {
       // Incorrect feedback
@@ -233,7 +251,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ level, onComplete, onBac
          </div>
          {level.id === 6 && discoveredEdges.length >= 4 && (
            <button 
-             onClick={onComplete}
+             onClick={handleCompleteClick}
              className="px-6 py-2 bg-green-600 hover:bg-green-500 text-black rounded-full text-xs font-bold tracking-widest shadow-lg transition-all active:scale-95 flex items-center gap-2"
            >
              完成图谱 <Check size={16} />

@@ -57,7 +57,6 @@ export const levels: Level[] = [
     ],
     edges: [
       { source: "dufu", target: "libai", label: "崇拜" },
-      { source: "baijuyi", target: "libai", label: "崇拜" },
       { source: "libai", target: "dufu", label: "好友" },
     ],
     relationOptions: ["好友", "崇拜", "师徒", "敌人"],

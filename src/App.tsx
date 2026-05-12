@@ -1,8 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { levels, Level } from './data/levels';
+import { levels, Level, GraphEdge, GraphNode } from './data/levels';
 import { GameCanvas } from './components/GameCanvas';
 import { BookOpen, Map, Sparkles, Play, ChevronRight, Unlock, ArrowRight, ArrowLeft, Settings } from 'lucide-react';
+
+export interface GraphSaveData {
+  edges: GraphEdge[];
+  nodes: GraphNode[];
+  nodePositions: Record<string, { x: number; y: number }>;
+}
 
 type AppState = 'intro' | 'map' | 'story' | 'game' | 'success';
 
@@ -195,6 +201,7 @@ export default function App() {
   const [appState, setAppState] = useState<AppState>('intro');
   const [currentLevelId, setCurrentLevelId] = useState<number>(1);
   const [unlockedLevels, setUnlockedLevels] = useState<number[]>([1]);
+  const [completedGraphs, setCompletedGraphs] = useState<Record<number, GraphSaveData>>({});
   const [readingTimeLeft, setReadingTimeLeft] = useState<number>(15);
   const [isTestPanelOpen, setIsTestPanelOpen] = useState(false);
   const [testPassword, setTestPassword] = useState('');
@@ -218,7 +225,13 @@ export default function App() {
     }
   }, [appState, currentLevelId]);
 
-  const handleLevelComplete = () => {
+  const handleLevelComplete = (graphData?: GraphSaveData) => {
+    if (graphData) {
+      setCompletedGraphs(prev => ({
+        ...prev,
+        [currentLevelId]: graphData
+      }));
+    }
     if (!unlockedLevels.includes(currentLevelId + 1) && currentLevelId < levels.length) {
       setUnlockedLevels(prev => [...prev, currentLevelId + 1]);
     }
@@ -306,7 +319,11 @@ export default function App() {
                       onClick={() => {
                         if (isUnlocked) {
                           setCurrentLevelId(level.id);
-                          setAppState('story');
+                          if (completedGraphs[level.id]) {
+                            setAppState('game');
+                          } else {
+                            setAppState('story');
+                          }
                         }
                       }}
                       className={`group relative p-6 rounded-2xl border transition-colors ${
@@ -402,6 +419,7 @@ export default function App() {
                    <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
                    <GameCanvas 
                      level={currentLevel} 
+                     initialData={completedGraphs[currentLevelId]}
                      onComplete={handleLevelComplete}
                    />
                  </section>
