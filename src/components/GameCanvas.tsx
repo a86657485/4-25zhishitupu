@@ -407,7 +407,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ level, initialData, onCo
         </svg>
 
         {/* Draw Nodes */}
-        {(level.nodes ?? []).map(node => {
+        {nodes.map(node => {
           const pos = nodePositions[node.id];
           if (!pos) return null;
           const conf = typeConfig[node.type];
