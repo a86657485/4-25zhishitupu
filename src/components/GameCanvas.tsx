@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Book, User, Sword, MapPin, X, Check } from 'lucide-react';
+import { Book, User, Sword, MapPin, X, Check, Sparkles } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Level, GraphNode, GraphEdge, NodeType } from '../data/levels';
 import { GraphSaveData } from '../App';
@@ -31,6 +31,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ level, initialData, onCo
   const [nodePositions, setNodePositions] = useState<Record<string, { x: number; y: number }>>({});
   const [showInstructions, setShowInstructions] = useState<boolean>(!initialData);
   const [errorFeedback, setErrorFeedback] = useState<boolean>(false);
+  const [guidanceAnswer, setGuidanceAnswer] = useState<{ label: string; source: string; target: string } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Initialize nodes
@@ -66,6 +67,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ level, initialData, onCo
     setIsCustomMode(false);
     setCustomRelation('');
     setErrorFeedback(false);
+    setGuidanceAnswer(null);
   }, [level, initialData]);
 
   // Handle window resize
@@ -179,14 +181,16 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ level, initialData, onCo
     // Verify if this is a correct relationship in the level data
     const levelEdges = level.edges ?? [];
     
-    // Level 6 is open-ended
-    const isCorrect = level.id === 6 || levelEdges.find(
+    // Level 1 and 6 are open-ended
+    const correctEdgeDef = levelEdges.find(
       e => (
         ((e.source === selectedNodeId && e.target === pendingTargetId) || 
          (e.source === pendingTargetId && e.target === selectedNodeId)) &&
         e.label === relToUse
       )
     );
+
+    const isCorrect = level.id === 1 || level.id === 6 || !!correctEdgeDef;
 
     if (isCorrect) {
       // Correct!
@@ -204,13 +208,26 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ level, initialData, onCo
         colors: ['#f59e0b', '#fbbf24', '#f87171', '#d97706']
       });
 
-      if (level.id !== 6 && newEdges.length === levelEdges.length) {
+      if (level.id !== 6 && level.id !== 1 && newEdges.length >= levelEdges.length) {
         setTimeout(handleCompleteClick, 1500);
       }
     } else {
       // Incorrect feedback
-      setErrorFeedback(true);
-      setTimeout(() => setErrorFeedback(false), 800);
+      const expectedEdge = levelEdges.find(
+        e => (e.source === selectedNodeId && e.target === pendingTargetId) || 
+             (e.source === pendingTargetId && e.target === selectedNodeId)
+      );
+
+      if (expectedEdge) {
+        setGuidanceAnswer({
+          label: expectedEdge.label,
+          source: nodes.find(n => n.id === expectedEdge.source)?.label || '',
+          target: nodes.find(n => n.id === expectedEdge.target)?.label || ''
+        });
+      } else {
+        setErrorFeedback(true);
+        setTimeout(() => setErrorFeedback(false), 800);
+      }
     }
 
     setSelectedNodeId(null);
@@ -247,9 +264,9 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ level, initialData, onCo
       </div>
       <div className="absolute top-6 right-6 z-10 text-right flex flex-col items-end gap-4">
          <div className="text-sm text-amber-500 font-serif">
-           {level.id === 6 ? `已建立 ${discoveredEdges.length} 条关系` : `${discoveredEdges.length} / ${(level.edges ?? []).length}`}
+           {(level.id === 6 || level.id === 1) ? `已建立 ${discoveredEdges.length} 条关系` : `${discoveredEdges.length} / ${(level.edges ?? []).length}`}
          </div>
-         {level.id === 6 && discoveredEdges.length >= 4 && (
+         {(level.id === 6 || level.id === 1) && discoveredEdges.length >= (level.id === 1 ? 2 : 4) && (
            <button 
              onClick={handleCompleteClick}
              className="px-6 py-2 bg-green-600 hover:bg-green-500 text-black rounded-full text-xs font-bold tracking-widest shadow-lg transition-all active:scale-95 flex items-center gap-2"
@@ -281,6 +298,44 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ level, initialData, onCo
             className="absolute top-20 left-1/2 -translate-x-1/2 px-6 py-3 bg-red-500/90 text-white rounded-full font-bold shadow-lg z-50 pointer-events-none"
           >
             关系不对哦，再想想！
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Guidance Popup */}
+      <AnimatePresence>
+        {guidanceAnswer && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-[60] flex items-center justify-center p-6 bg-[#000000]/80 backdrop-blur-md"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="bg-[#151515] p-8 rounded-3xl border border-blue-500/30 shadow-[0_0_40px_rgba(59,130,246,0.15)] max-w-sm w-full text-center"
+            >
+              <div className="mx-auto w-16 h-16 bg-blue-600/20 border border-blue-600/50 rounded-full flex items-center justify-center mb-6 text-blue-400">
+                <Sparkles size={32} />
+              </div>
+              <h3 className="text-2xl font-serif text-blue-100 mb-2">小提示</h3>
+              <p className="text-[#E0D8D0]/70 mb-6 font-serif leading-relaxed">
+                原来 <span className="text-amber-400 font-bold">{guidanceAnswer.source}</span> 和 <span className="text-amber-400 font-bold">{guidanceAnswer.target}</span> 的关系是：
+              </p>
+              <div className="py-4 px-8 bg-blue-500/10 border border-blue-500/20 rounded-2xl mb-8">
+                <span className="text-3xl font-serif text-blue-400 tracking-wider">
+                  {guidanceAnswer.label}
+                </span>
+              </div>
+              <button 
+                onClick={() => setGuidanceAnswer(null)}
+                className="w-full py-3 bg-blue-600 text-black text-xs tracking-widest font-bold uppercase rounded-full hover:bg-blue-500 transition-colors shadow-[0_0_20px_rgba(59,130,246,0.3)]"
+              >
+                我知道了，去试试
+              </button>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -479,7 +534,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ level, initialData, onCo
                   {rel}
                 </button>
               ))}
-              {level.id === 6 && (
+              {(level.id === 6 || level.id === 1) && (
                 <button
                   onClick={() => setIsCustomMode(true)}
                   className="py-3 px-4 rounded-xl bg-white/5 text-white/60 text-xs tracking-widest font-bold uppercase hover:bg-white/10 hover:text-white transition-colors border border-white/10 active:scale-95 flex justify-center items-center gap-2"
