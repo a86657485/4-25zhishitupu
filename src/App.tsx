@@ -131,16 +131,16 @@ function QuizView({ questions, onComplete }: { questions: any[], onComplete: () 
     const correct = index === currentQuestion.answer;
     setIsCorrect(correct);
     if (correct) setScore(s => s + 1);
+  };
 
-    setTimeout(() => {
-      if (currentIndex < questions.length - 1) {
-        setCurrentIndex(currentIndex + 1);
-        setSelectedOption(null);
-        setIsCorrect(null);
-      } else {
-        onComplete();
-      }
-    }, 1500);
+  const goNext = () => {
+    if (currentIndex < questions.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+      setSelectedOption(null);
+      setIsCorrect(null);
+    } else {
+      onComplete();
+    }
   };
 
   return (
@@ -183,16 +183,57 @@ function QuizView({ questions, onComplete }: { questions: any[], onComplete: () 
                 </span>
                 <span className="text-lg font-serif">{option}</span>
               </div>
+              <AnimatePresence>
+                {selectedOption !== null && currentQuestion.explanations?.[i] && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                    animate={{ opacity: 1, height: 'auto', marginTop: 14 }}
+                    exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                    className={`border-t pt-3 text-sm leading-relaxed ${
+                      isRight
+                        ? 'border-green-400/30 text-green-100/85'
+                        : isWrong
+                          ? 'border-red-400/30 text-red-100/85'
+                          : 'border-white/10 text-[#E0D8D0]/55'
+                    }`}
+                  >
+                    {currentQuestion.explanations[i]}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.button>
           );
         })}
       </div>
 
+      {selectedOption !== null && (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-8 flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/5 p-4"
+        >
+          <div>
+            <div className={`text-sm font-bold ${isCorrect ? 'text-green-400' : 'text-red-400'}`}>
+              {isCorrect ? '回答正确' : '回答错误'}
+            </div>
+            <div className="mt-1 text-xs text-[#E0D8D0]/55">
+              正确答案是 {String.fromCharCode(65 + currentQuestion.answer)}，读完解析后继续。
+            </div>
+          </div>
+          <button
+            onClick={goNext}
+            className="shrink-0 rounded-full bg-amber-600 px-6 py-3 text-xs font-bold tracking-widest text-black transition-colors hover:bg-amber-500"
+          >
+            {currentIndex < questions.length - 1 ? '下一题' : '完成挑战'}
+          </button>
+        </motion.div>
+      )}
+
       <div className="mt-12 w-full h-1 bg-white/5 rounded-full overflow-hidden">
         <motion.div 
           className="h-full bg-amber-500" 
           initial={{ width: 0 }}
-          animate={{ width: `${((currentIndex) / questions.length) * 100}%` }}
+          animate={{ width: `${((currentIndex + (selectedOption !== null ? 1 : 0)) / questions.length) * 100}%` }}
         />
       </div>
     </div>
@@ -466,12 +507,12 @@ export default function App() {
               </p>
               
               <div className="space-y-3">
-                {currentLevelId === 6 && (
+                {currentLevelId === levels.length && (
                   <button 
                     onClick={() => setAppState('bonus')}
                     className="w-full py-4 bg-gradient-to-r from-amber-600 via-amber-400 to-amber-600 bg-[length:200%_auto] animate-shimmer text-black text-xs tracking-widest uppercase font-bold rounded-full hover:scale-[1.02] transition-all shadow-[0_0_30px_rgba(245,158,11,0.5)] flex items-center justify-center gap-2 group"
                   >
-                    <Sparkles size={16} className="group-hover:rotate-12 transition-transform" /> 开启隐藏挑战 <Sparkles size={16} />
+                    <Sparkles size={16} className="group-hover:rotate-12 transition-transform" /> 开启最终小游戏 <Sparkles size={16} />
                   </button>
                 )}
                 {currentLevelId < levels.length && (
